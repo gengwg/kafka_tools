@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# A tool to purge some kafka topic.
+# Usage:
+#   kafka_purge_queue <topic_name>
+
+set -e
+
+usage() {
+    cat <<EOM
+  Usage:
+    $(basename $0) <topic_name>
+EOM
+    exit 1
+}
+
+[ -z $1 ] && { usage; }
+
+# in ms
+DEFAUT_RETENTION=604800000
+SHORT_RETENTION=1000
+
+TOPIC=$1
+ZK_HOST=kafka.example.com   # zookeeper host
+ZK_PORT=9091
+WAIT=300  # 5 min
+
+# kafka-configs --zookeeper $ZK_HOST:$ZK_PORT --entity-type topics --describe --entity-name $1 
+echo "Going to purge kafka topic '$TOPIC'..."
+echo ">>> If you ran this by mistake, press 'Ctrl + C' NOW! <<<"
+sleep 10
+
+echo "Purging kafka topic $TOPIC..."
+kafka-configs --zookeeper $ZK_HOST:$ZK_PORT --entity-type topics --alter --add-config retention.ms=$SHORT_RETENTION --entity-name $1
+# kafka-configs --zookeeper $ZK_HOST:$ZK_PORT --entity-type topics --describe --entity-name $1 
+
+echo "Waiting for message queue to clear..."
+sleep $WAIT
+
+echo "Setting retention back to default..."
+kafka-configs --zookeeper $ZK_HOST:$ZK_PORT --entity-type topics --alter --delete-config retention.ms --entity-name $1
+# kafka-configs --zookeeper $ZK_HOST:$ZK_PORT --entity-type topics --describe --entity-name $1
+
